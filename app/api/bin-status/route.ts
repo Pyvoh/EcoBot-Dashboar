@@ -21,7 +21,18 @@ export async function POST(request: NextRequest) {
     binStatus = {
       status: body.status || binStatus.status,
       message: body.message || binStatus.message,
-      timestamp: body.timestamp || Date.now(),
+      timestamp:
+        body.timestamp ||
+        new Date().toLocaleString("en-US", {
+          timeZone: "Asia/Manila", // UTC+8
+          year: "numeric",
+          month: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        }),
       device_id: body.device_id || binStatus.device_id,
       containerLevel: body.containerLevel || binStatus.containerLevel,
     }
