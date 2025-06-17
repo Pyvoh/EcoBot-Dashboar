@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoBot Dashboard - Static Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(30, 64, 175, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .robot-icon {
+            background: #f97316;
+            padding: 12px;
+            border-radius: 50%;
+            font-size: 24px;
+        }
+
+        .header-title h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .header-subtitle {
+            color: #bfdbfe;
+            font-size: 1.125rem;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #10b981;
+        }
+
+        .status-dot.disconnected {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 32px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #bfdbfe;
+            border: 1px solid #60a5fa;
+        }
+
+        .btn-outline:hover {
+            background: #1d4ed8;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            background: rgba(30, 64, 175, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 24px 24px 0;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .card-content {
+            padding: 0 24px 24px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .status-text {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fbbf24;
+        }
+
+        .bottle-count {
+            font-size: 4rem;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .history-table th,
+        .history-table td {
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .history-table th {
+            color: #bfdbfe;
+            font-weight: 500;
+        }
+
+        .history-table tr:hover {
+            background: rgba(29, 78, 216, 0.3);
+        }
+
+        .status-completed {
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .reward-status {
+            text-align: right;
+            margin-bottom: 16px;
+        }
+
+        .reward-label {
+            font-size: 0.875rem;
+            color: #bfdbfe;
+        }
+
+        .reward-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 32px;
+            color: #bfdbfe;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="robot-icon">🤖</div>
+                    <div class="header-title">
+                        <h1>EcoBot Dashboard</h1>
+                        <p class="header-subtitle">Real-time monitoring of your smart bottle collection system</p>
+                    </div>
+                </div>
+                <div class="connection-status">
+                    <div class="status-dot connected" id="statusDot"></div>
+                    <span id="connectionText">Connected</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="connectToEcoBot()">
+                📶 Connect to EcoBot
+            </button>
+            <button class="btn btn-outline" onclick="clearHistory()">
+                🗑️ Clear History
+            </button>
+            <button class="btn btn-outline" onclick="exportData()">
+                📥 Export Data
+            </button>
+        </div>
+
+        <!-- Status Cards -->
+        <div class="cards-grid">
+            <!-- Bin Status -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>⚠️</span>
+                        Bin Status
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="status-indicator">
+                        <div class="status-dot connected"></div>
+                        <span class="status-text" id="binStatus">UNKNOWN</span>
+                    </div>
+                    <div>
+                        <p style="font-weight: 500; margin-bottom: 4px;">Container Level</p>
+                        <p style="font-size: 0.875rem; color: #bfdbfe;" id="lastUpdated">
+                            Last updated: 6/17/2025, 7:10:12 AM
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Bottles -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>📊</span>
+                        Total Bottles Collected
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="bottle-count" id="totalBottles">6</div>
+                    <div>
+                        <p style="color: #bfdbfe; margin-bottom: 4px;">All time collection</p>
+                        <p style="font-size: 0.875rem;">Sessions completed: <span id="sessionsCompleted">2</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Collection History -->
+        <div class="card">
+            <div class="card-header">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div class="card-title">
+                        <span>📋</span>
+                        Collection History
+                    </div>
+                    <div class="reward-status">
+                        <div class="reward-label">REWARD STATUS:</div>
+                        <div class="reward-value" id="totalReward">15</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-content">
+                <table class="history-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Session Type</th>
+                            <th>Bottles</th>
+                            <th>Timestamp</th>
+                            <th>Status</th>
+                            <th>REWARD</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr>
+                            <td>2</td>
+                            <td>Arduino Collection</td>
+                            <td>3</td>
+                            <td>6/17/2025, 7:07:22 AM</td>
+                            <td class="status-completed">✓ Completed</td>
+                            <td style="font-weight: bold;">13</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>Arduino Collection</td>
+                            <td>3</td>
+                            <td>6/17/2025, 6:58:54 AM</td>
+                            <td class="status-completed">✓ Completed</td>
+                            <td style="font-weight: bold;">14</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state - START EMPTY
+        let connected = true;
+        let bottleData = {
+            history: [], // Start empty
+            total: 0,    // Start with 0 bottles
+            sessions: 0, // Start with 0 sessions
+            totalReward: 15 // Start with 15 rewards
+        };
+
+        // API Functions
+        async function fetchData(endpoint, options = {}) {
+            try {
+                const response = await fetch(`/api/${endpoint}`, options);
+                if (response.ok) {
+                    return await response.json();
+                }
+                throw new Error(`HTTP ${response.status}`);
+            } catch (error) {
+                console.error(`Error fetching ${endpoint}:`, error);
+                return null;
+            }
+        }
+
+        async function connectToEcoBot() {
+            const result = await fetchData('bin-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'connect', device_id: 'ecobot_001' })
+            });
+            
+            if (result) {
+                connected = true;
+                updateConnectionStatus();
+                alert('Connected to EcoBot successfully!');
+            } else {
+                alert('Failed to connect to EcoBot');
+            }
+        }
+
+        async function clearHistory() {
+            if (confirm('Are you sure you want to clear all history?')) {
+                const result = await fetchData('bottle-data', { method: 'DELETE' });
+                if (result) {
+                    bottleData.history = [];
+                    bottleData.total = 0;
+                    bottleData.sessions = 0;
+                    updateDisplay();
+                    alert('History cleared successfully!');
+                }
+            }
+        }
+
+        function exportData() {
+            const data = {
+                ...bottleData,
+                exportDate: new Date().toISOString(),
+                binStatus: document.getElementById('binStatus').textContent
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ecobot-data-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Update functions
+        function updateConnectionStatus() {
+            const statusDot = document.getElementById('statusDot');
+            const connectionText = document.getElementById('connectionText');
+            
+            if (connected) {
+                statusDot.className = 'status-dot connected';
+                connectionText.textContent = 'Connected';
+            } else {
+                statusDot.className = 'status-dot disconnected';
+                connectionText.textContent = 'Disconnected';
+            }
+        }
+
+        function updateDisplay() {
+            // Update totals
+            document.getElementById('totalBottles').textContent = bottleData.total;
+            document.getElementById('sessionsCompleted').textContent = bottleData.sessions;
+            document.getElementById('totalReward').textContent = bottleData.totalReward;
+            
+            // Update history table
+            const tbody = document.getElementById('historyBody');
+            tbody.innerHTML = '';
+            
+            if (bottleData.history.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No collection history available</td></tr>';
+            } else {
+                bottleData.history.forEach(session => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${session.id}</td>
+                        <td>${session.sessionType}</td>
+                        <td>${session.bottles}</td>
+                        <td>${session.timestamp}</td>
+                        <td class="status-completed">✓ ${session.status}</td>
+                        <td style="font-weight: bold; color: #ef4444;">-${session.reward}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        // Polling for real-time updates
+        async function pollForUpdates() {
+            // Check bin status
+            const binStatus = await fetchData('bin-status');
+            if (binStatus) {
+                document.getElementById('binStatus').textContent = binStatus.status.toUpperCase();
+                document.getElementById('lastUpdated').textContent = 
+                    `Last updated: ${new Date(binStatus.timestamp).toLocaleString()}`;
+            }
+
+            // Check bottle data
+            const newBottleData = await fetchData('bottle-data');
+            if (newBottleData) {
+                bottleData.history = newBottleData.history || [];
+                bottleData.total = newBottleData.total || 0;
+                bottleData.sessions = newBottleData.sessions || 0;
+            }
+
+            // Check rewards
+            const rewardData = await fetchData('reward-bottle');
+            if (rewardData) {
+                bottleData.totalReward = rewardData.totalReward || 0;
+            }
+
+            updateDisplay();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateConnectionStatus();
+            updateDisplay();
+            
+            // Poll every 5 seconds
+            setInterval(pollForUpdates, 5000);
+            
+            // Simulate connection status changes
+            setInterval(() => {
+                connected = Math.random() > 0.1;
+                updateConnectionStatus();
+            }, 10000);
+        });
+
+        // Simulate receiving data from Arduino
+        function simulateArduinoData() {
+            // Simulate bottle collection
+            if (Math.random() > 0.8) {
+                const newSession = {
+                    id: bottleData.history.length + 1,
+                    sessionType: 'Arduino Collection',
+                    bottles: 3,
+                    timestamp: new Date().toLocaleString(),
+                    status: 'Completed',
+                    reward: 1 // Each session uses 1 reward point
+                };
+                
+                bottleData.history.unshift(newSession);
+                bottleData.total += newSession.bottles;
+                bottleData.sessions += 1;
+                bottleData.totalReward = Math.max(0, bottleData.totalReward - 1); // Decrease reward by 1
+                
+                updateDisplay();
+                console.log('New bottle collection simulated:', newSession);
+                console.log('Rewards remaining:', bottleData.totalReward);
+            }
+        }
+
+        // Run simulation every 30 seconds
+        setInterval(simulateArduinoData, 30000);
+    </script>
+</body>
+</html>
