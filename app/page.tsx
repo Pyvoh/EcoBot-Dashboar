@@ -244,7 +244,17 @@ export default function EcoBotDashboard() {
                 <div className="text-blue-200">
                   <p className="font-medium">Container Level</p>
                   <p className="text-sm text-blue-300">
-                    Last updated: {new Date(binStatus.timestamp).toLocaleString()}
+                    Last updated:{" "}
+                    {new Date(binStatus.timestamp).toLocaleString("en-US", {
+                      timeZone: "Asia/Manila", // UTC+8
+                      year: "numeric",
+                      month: "numeric",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      second: "2-digit",
+                      hour12: true,
+                    })}
                   </p>
                 </div>
               </div>

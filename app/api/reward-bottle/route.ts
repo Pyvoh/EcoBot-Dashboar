@@ -20,7 +20,16 @@ export async function POST(request: NextRequest) {
       const newReward = {
         id: rewardData.rewardHistory.length + 1,
         amount: -amount, // Negative amount for decrease
-        timestamp: new Date().toLocaleString(),
+        timestamp: new Date().toLocaleString("en-US", {
+          timeZone: "Asia/Manila", // UTC+8
+          year: "numeric",
+          month: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        }),
         reason: body.reason || "Session completed - reward used",
       }
 
@@ -40,7 +49,16 @@ export async function POST(request: NextRequest) {
       const newReward = {
         id: rewardData.rewardHistory.length + 1,
         amount: body.amount || 1,
-        timestamp: new Date().toLocaleString(),
+        timestamp: new Date().toLocaleString("en-US", {
+          timeZone: "Asia/Manila", // UTC+8
+          year: "numeric",
+          month: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        }),
         reason: body.reason || "Reward added",
       }
 

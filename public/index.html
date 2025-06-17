@@ -293,10 +293,10 @@
                     </div>
                 </div>
                 <div class="card-content">
-                    <div class="bottle-count" id="totalBottles">6</div>
+                    <div class="bottle-count" id="totalBottles">0</div>
                     <div>
                         <p style="color: #bfdbfe; margin-bottom: 4px;">All time collection</p>
-                        <p style="font-size: 0.875rem;">Sessions completed: <span id="sessionsCompleted">2</span></p>
+                        <p style="font-size: 0.875rem;">Sessions completed: <span id="sessionsCompleted">0</span></p>
                     </div>
                 </div>
             </div>
@@ -330,20 +330,7 @@
                     </thead>
                     <tbody id="historyBody">
                         <tr>
-                            <td>2</td>
-                            <td>Arduino Collection</td>
-                            <td>3</td>
-                            <td>6/17/2025, 7:07:22 AM</td>
-                            <td class="status-completed">✓ Completed</td>
-                            <td style="font-weight: bold;">13</td>
-                        </tr>
-                        <tr>
-                            <td>1</td>
-                            <td>Arduino Collection</td>
-                            <td>3</td>
-                            <td>6/17/2025, 6:58:54 AM</td>
-                            <td class="status-completed">✓ Completed</td>
-                            <td style="font-weight: bold;">14</td>
+                            <td colspan="6" class="empty-state">No collection history available</td>
                         </tr>
                     </tbody>
                 </table>
@@ -352,6 +339,28 @@
     </div>
 
     <script>
+        // Timezone configuration
+        const TIMEZONE = 'Asia/Manila'; // UTC+8
+
+        // Utility function to format timestamps in UTC+8
+        function formatTimestamp(date) {
+            const dateObj = new Date(date);
+            return dateObj.toLocaleString("en-US", {
+                timeZone: TIMEZONE,
+                year: "numeric",
+                month: "numeric", 
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: true
+            });
+        }
+
+        function getCurrentTimestamp() {
+            return formatTimestamp(new Date());
+        }
+
         // Global state - START EMPTY
         let connected = true;
         let bottleData = {
@@ -407,8 +416,9 @@
         function exportData() {
             const data = {
                 ...bottleData,
-                exportDate: new Date().toISOString(),
-                binStatus: document.getElementById('binStatus').textContent
+                exportDate: getCurrentTimestamp(),
+                binStatus: document.getElementById('binStatus').textContent,
+                timezone: TIMEZONE
             };
             
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -471,7 +481,7 @@
             if (binStatus) {
                 document.getElementById('binStatus').textContent = binStatus.status.toUpperCase();
                 document.getElementById('lastUpdated').textContent = 
-                    `Last updated: ${new Date(binStatus.timestamp).toLocaleString()}`;
+                    `Last updated: ${formatTimestamp(binStatus.timestamp)}`;
             }
 
             // Check bottle data
@@ -496,6 +506,10 @@
             updateConnectionStatus();
             updateDisplay();
             
+            // Update last updated time with current time in UTC+8
+            document.getElementById('lastUpdated').textContent = 
+                `Last updated: ${getCurrentTimestamp()}`;
+            
             // Poll every 5 seconds
             setInterval(pollForUpdates, 5000);
             
@@ -514,7 +528,7 @@
                     id: bottleData.history.length + 1,
                     sessionType: 'Arduino Collection',
                     bottles: 3,
-                    timestamp: new Date().toLocaleString(),
+                    timestamp: getCurrentTimestamp(), // Use UTC+8 timestamp
                     status: 'Completed',
                     reward: 1 // Each session uses 1 reward point
                 };

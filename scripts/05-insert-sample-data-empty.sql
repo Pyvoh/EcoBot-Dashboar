@@ -1,4 +1,5 @@
 -- Empty Sample Data for EcoBot Database (No initial sessions)
+-- Updated with UTC+8 timezone handling
 
 -- Insert your EcoBot device only
 INSERT INTO devices (device_id, device_name, location, firmware_version) 
@@ -18,17 +19,20 @@ INSERT INTO device_config (device_id, config_key, config_value, data_type, descr
 ('ecobot_001', 'full_threshold_cm', '10', 'decimal', 'Distance threshold to consider container full'),
 ('ecobot_001', 'wifi_ssid', 'BOSSING!!', 'string', 'WiFi network name'),
 ('ecobot_001', 'server_url', 'ecobot-idnm.onrender.com', 'string', 'Server URL for API calls'),
-('ecobot_001', 'notification_cooldown_ms', '60000', 'integer', 'Cooldown between notifications in milliseconds')
+('ecobot_001', 'notification_cooldown_ms', '60000', 'integer', 'Cooldown between notifications in milliseconds'),
+('ecobot_001', 'timezone', 'Asia/Manila', 'string', 'Device timezone (UTC+8)')
 ON CONFLICT (device_id, config_key) DO UPDATE SET
     config_value = EXCLUDED.config_value,
     updated_at = NOW();
 
--- Insert initial bin status only
-INSERT INTO bin_status (device_id, status, container_level_cm, container_level_percent, is_full, message)
-VALUES ('ecobot_001', 'unknown', 15.5, 25, false, 'System initialized - ready for first session');
+-- Insert initial bin status only (using UTC+8 timezone)
+INSERT INTO bin_status (device_id, status, container_level_cm, container_level_percent, is_full, message, created_at)
+VALUES ('ecobot_001', 'unknown', 15.5, 25, false, 'System initialized - ready for first session', 
+        (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila'));
 
--- Insert initial system log only
-INSERT INTO system_logs (device_id, log_level, category, message) VALUES
-('ecobot_001', 'info', 'general', 'System initialized with 15 reward points');
+-- Insert initial system log only (using UTC+8 timezone)
+INSERT INTO system_logs (device_id, log_level, category, message, created_at) VALUES
+('ecobot_001', 'info', 'general', 'System initialized with 15 reward points', 
+ (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila'));
 
 -- NO SAMPLE SESSIONS OR REWARDS - START COMPLETELY EMPTY

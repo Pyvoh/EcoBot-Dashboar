@@ -20,7 +20,16 @@ export async function POST(request: NextRequest) {
       id: bottleData.history.length + 1,
       sessionType: body.sessionType || "Arduino Collection",
       bottles: body.bottles || 3,
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toLocaleString("en-US", {
+        timeZone: "Asia/Manila", // UTC+8
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      }),
       status: body.status || "Completed",
       reward: 1, // Each session costs 1 reward point
     }
