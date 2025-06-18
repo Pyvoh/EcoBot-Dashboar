@@ -84,6 +84,11 @@
             background: #ef4444;
         }
 
+        .status-dot.connecting {
+            background: #eab308;
+            animation: pulse 1s infinite;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -106,15 +111,6 @@
             align-items: center;
             gap: 8px;
             transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: #2563eb;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #1d4ed8;
         }
 
         .btn-outline {
@@ -241,17 +237,14 @@
                     </div>
                 </div>
                 <div class="connection-status">
-                    <div class="status-dot connected" id="statusDot"></div>
-                    <span id="connectionText">Connected</span>
+                    <div class="status-dot connecting" id="statusDot"></div>
+                    <span id="connectionText">Connecting...</span>
                 </div>
             </div>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Action Buttons - Removed Connect Button -->
         <div class="action-buttons">
-            <button class="btn btn-primary" onclick="connectToEcoBot()">
-                📶 Connect to EcoBot
-            </button>
             <button class="btn btn-outline" onclick="clearHistory()">
                 🗑️ Clear History
             </button>
@@ -278,7 +271,7 @@
                     <div>
                         <p style="font-weight: 500; margin-bottom: 4px;">Container Level</p>
                         <p style="font-size: 0.875rem; color: #bfdbfe;" id="lastUpdated">
-                            Last updated: 6/17/2025, 7:10:12 AM
+                            Last updated: Connecting...
                         </p>
                     </div>
                 </div>
@@ -361,14 +354,99 @@
             return formatTimestamp(new Date());
         }
 
-        // Global state - START EMPTY
-        let connected = true;
+        // Global state
+        let connected = false;
+        let isConnecting = true;
         let bottleData = {
-            history: [], // Start empty
-            total: 0,    // Start with 0 bottles
-            sessions: 0, // Start with 0 sessions
-            totalReward: 15 // Start with 15 rewards
+            history: [],
+            total: 0,
+            sessions: 0,
+            totalReward: 15
         };
+
+        // Auto-connect function
+        async function autoConnectToEcoBot() {
+            console.log("🤖 Auto-connecting to EcoBot...");
+            
+            try {
+                const result = await fetchData('bin-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        action: 'connect', 
+                        device_id: 'ecobot_001',
+                        status: 'connected',
+                        message: 'Dashboard connected automatically'
+                    })
+                });
+                
+                if (result) {
+                    connected = true;
+                    isConnecting = false;
+                    updateConnectionStatus();
+                    console.log('✅ Auto-connected to EcoBot successfully!');
+                } else {
+                    isConnecting = false;
+                    updateConnectionStatus();
+                    console.log('❌ Auto-connection failed, will retry in 10 seconds...');
+                    setTimeout(autoConnectToEcoBot, 10000);
+                }
+            } catch (error) {
+                isConnecting = false;
+                updateConnectionStatus();
+                console.error('Auto-connection error:', error);
+                setTimeout(autoConnectToEcoBot, 10000);
+            }
+        }
+
+        // Keep connection alive
+        function startKeepAlive() {
+            setInterval(async () => {
+                if (connected) {
+                    try {
+                        const result = await fetchData('bin-status', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                action: 'ping', 
+                                device_id: 'ecobot_001',
+                                status: 'connected',
+                                message: 'Keep-alive ping'
+                            })
+                        });
+                        
+                        if (!result) {
+                            connected = false;
+                            updateConnectionStatus();
+                            console.log('⚠️ Connection lost, attempting to reconnect...');
+                            autoConnectToEcoBot();
+                        }
+                    } catch (error) {
+                        connected = false;
+                        updateConnectionStatus();
+                        console.log('⚠️ Keep-alive failed, attempting to reconnect...');
+                        autoConnectToEcoBot();
+                    }
+                }
+            }, 30000);
+        }
+
+        // Update connection status display
+        function updateConnectionStatus() {
+            const statusDot = document.getElementById('statusDot');
+            const connectionText = document.getElementById('connectionText');
+            
+            if (isConnecting) {
+                statusDot.className = 'status-dot connecting';
+                connectionText.textContent = 'Connecting...';
+            } else if (connected) {
+                statusDot.className = 'status-dot connected';
+                connectionText.textContent = 'Connected';
+            } else {
+                statusDot.className = 'status-dot disconnected';
+                connectionText.textContent = 'Disconnected';
+            }
+        }
 
         // API Functions
         async function fetchData(endpoint, options = {}) {
@@ -381,22 +459,6 @@
             } catch (error) {
                 console.error(`Error fetching ${endpoint}:`, error);
                 return null;
-            }
-        }
-
-        async function connectToEcoBot() {
-            const result = await fetchData('bin-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'connect', device_id: 'ecobot_001' })
-            });
-            
-            if (result) {
-                connected = true;
-                updateConnectionStatus();
-                alert('Connected to EcoBot successfully!');
-            } else {
-                alert('Failed to connect to EcoBot');
             }
         }
 
@@ -433,26 +495,11 @@
         }
 
         // Update functions
-        function updateConnectionStatus() {
-            const statusDot = document.getElementById('statusDot');
-            const connectionText = document.getElementById('connectionText');
-            
-            if (connected) {
-                statusDot.className = 'status-dot connected';
-                connectionText.textContent = 'Connected';
-            } else {
-                statusDot.className = 'status-dot disconnected';
-                connectionText.textContent = 'Disconnected';
-            }
-        }
-
         function updateDisplay() {
-            // Update totals
             document.getElementById('totalBottles').textContent = bottleData.total;
             document.getElementById('sessionsCompleted').textContent = bottleData.sessions;
             document.getElementById('totalReward').textContent = bottleData.totalReward;
             
-            // Update history table
             const tbody = document.getElementById('historyBody');
             tbody.innerHTML = '';
             
@@ -476,7 +523,6 @@
 
         // Polling for real-time updates
         async function pollForUpdates() {
-            // Check bin status
             const binStatus = await fetchData('bin-status');
             if (binStatus) {
                 document.getElementById('binStatus').textContent = binStatus.status.toUpperCase();
@@ -484,7 +530,6 @@
                     `Last updated: ${formatTimestamp(binStatus.timestamp)}`;
             }
 
-            // Check bottle data
             const newBottleData = await fetchData('bottle-data');
             if (newBottleData) {
                 bottleData.history = newBottleData.history || [];
@@ -492,7 +537,6 @@
                 bottleData.sessions = newBottleData.sessions || 0;
             }
 
-            // Check rewards
             const rewardData = await fetchData('reward-bottle');
             if (rewardData) {
                 bottleData.totalReward = rewardData.totalReward || 0;
@@ -501,46 +545,40 @@
             updateDisplay();
         }
 
-        // Initialize
+        // Initialize everything when page loads
         document.addEventListener('DOMContentLoaded', function() {
             updateConnectionStatus();
             updateDisplay();
             
-            // Update last updated time with current time in UTC+8
-            document.getElementById('lastUpdated').textContent = 
-                `Last updated: ${getCurrentTimestamp()}`;
+            // Start auto-connection immediately
+            autoConnectToEcoBot();
             
-            // Poll every 5 seconds
+            // Start keep-alive mechanism
+            startKeepAlive();
+            
+            // Poll for data every 5 seconds
             setInterval(pollForUpdates, 5000);
-            
-            // Simulate connection status changes
-            setInterval(() => {
-                connected = Math.random() > 0.1;
-                updateConnectionStatus();
-            }, 10000);
         });
 
         // Simulate receiving data from Arduino
         function simulateArduinoData() {
-            // Simulate bottle collection
             if (Math.random() > 0.8) {
                 const newSession = {
                     id: bottleData.history.length + 1,
                     sessionType: 'Arduino Collection',
                     bottles: 3,
-                    timestamp: getCurrentTimestamp(), // Use UTC+8 timestamp
+                    timestamp: getCurrentTimestamp(),
                     status: 'Completed',
-                    reward: 1 // Each session uses 1 reward point
+                    reward: 1
                 };
                 
                 bottleData.history.unshift(newSession);
                 bottleData.total += newSession.bottles;
                 bottleData.sessions += 1;
-                bottleData.totalReward = Math.max(0, bottleData.totalReward - 1); // Decrease reward by 1
+                bottleData.totalReward = Math.max(0, bottleData.totalReward - 1);
                 
                 updateDisplay();
                 console.log('New bottle collection simulated:', newSession);
-                console.log('Rewards remaining:', bottleData.totalReward);
             }
         }
 

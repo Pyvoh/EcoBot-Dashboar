@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Wifi, WifiOff, Trash2, Download, BarChart3, CheckCircle, AlertCircle, Clock } from "lucide-react"
+import { Trash2, Download, BarChart3, CheckCircle, AlertCircle, Clock } from "lucide-react"
 
 interface BottleData {
   id: number
@@ -34,18 +34,81 @@ export default function EcoBotDashboard() {
   const [totalBottles, setTotalBottles] = useState(0)
   const [totalReward, setTotalReward] = useState(15) // Start with 15 rewards
   const [sessionsCompleted, setSessionsCompleted] = useState(0)
+  const [isConnecting, setIsConnecting] = useState(true)
 
-  // Simulate connection status
+  // Auto-connect and maintain connection
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Simulate random connection status changes
-      setConnected((prev) => (Math.random() > 0.1 ? true : prev))
-    }, 5000)
+    // Auto-connect on page load
+    const autoConnect = async () => {
+      try {
+        console.log("🤖 Auto-connecting to EcoBot...")
 
-    return () => clearInterval(interval)
+        const response = await fetch("/api/bin-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "connect",
+            device_id: "ecobot_001",
+            status: "connected",
+            message: "Dashboard connected automatically",
+            timestamp: Date.now(),
+          }),
+        })
+
+        if (response.ok) {
+          setConnected(true)
+          setIsConnecting(false)
+          console.log("✅ Auto-connected to EcoBot successfully!")
+        } else {
+          setIsConnecting(false)
+          console.log("❌ Auto-connection failed, will retry...")
+          // Retry connection every 10 seconds if failed
+          setTimeout(autoConnect, 10000)
+        }
+      } catch (error) {
+        console.error("Auto-connection error:", error)
+        setIsConnecting(false)
+        // Retry connection every 10 seconds if error
+        setTimeout(autoConnect, 10000)
+      }
+    }
+
+    // Start auto-connection immediately
+    autoConnect()
+
+    // Keep connection alive - ping every 30 seconds
+    const keepAliveInterval = setInterval(async () => {
+      try {
+        const response = await fetch("/api/bin-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "ping",
+            device_id: "ecobot_001",
+            status: "connected",
+            message: "Keep-alive ping",
+            timestamp: Date.now(),
+          }),
+        })
+
+        if (response.ok) {
+          setConnected(true)
+        } else {
+          setConnected(false)
+          console.log("⚠️ Connection lost, attempting to reconnect...")
+          autoConnect() // Try to reconnect
+        }
+      } catch (error) {
+        setConnected(false)
+        console.log("⚠️ Keep-alive failed, attempting to reconnect...")
+        autoConnect() // Try to reconnect
+      }
+    }, 30000) // Every 30 seconds
+
+    return () => clearInterval(keepAliveInterval)
   }, [])
 
-  // Poll for updates
+  // Poll for data updates
   useEffect(() => {
     const pollData = async () => {
       try {
@@ -83,26 +146,6 @@ export default function EcoBotDashboard() {
 
     return () => clearInterval(interval)
   }, [])
-
-  const handleConnectToEcoBot = async () => {
-    try {
-      const response = await fetch("/api/bin-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "connect",
-          device_id: "ecobot_001",
-        }),
-      })
-
-      if (response.ok) {
-        setConnected(true)
-        console.log("Connected to EcoBot")
-      }
-    } catch (error) {
-      console.error("Connection failed:", error)
-    }
-  }
 
   const handleClearHistory = async () => {
     try {
@@ -182,7 +225,12 @@ export default function EcoBotDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {connected ? (
+              {isConnecting ? (
+                <>
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
+                  <span className="text-yellow-400 font-medium">Connecting...</span>
+                </>
+              ) : connected ? (
                 <>
                   <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                   <span className="text-green-400 font-medium">Connected</span>
@@ -198,13 +246,9 @@ export default function EcoBotDashboard() {
         </div>
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Buttons - Removed Connect Button */}
       <div className="max-w-7xl mx-auto mb-8">
         <div className="flex gap-4 justify-center">
-          <Button onClick={handleConnectToEcoBot} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3">
-            {connected ? <Wifi className="h-4 w-4 mr-2" /> : <WifiOff className="h-4 w-4 mr-2" />}
-            Connect to EcoBot
-          </Button>
           <Button
             onClick={handleClearHistory}
             variant="outline"
